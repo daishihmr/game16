@@ -3,55 +3,102 @@ require(tm.graphics);
 require(tm.geom);
 
 tm.preload(function() {
-    TextureManager.add("kuma", "chara1.png");
+    TextureManager.add("player", "assets/player.png");
+    TextureManager.add("backfire", "assets/backfire.png");
 });
 
 tm.main(function() {
     var app = CanvasApp("#main");
+    app.fps = 30;
+    app.resize(320, 480);
     app.fitWindow();
-    app.background = "rgba(0,0,0,0.3)";
+    app.background = "rgba(0, 0, 0, 0.3)";
 
-    var kuma = Sprite(32, 32, TextureManager.get("kuma"));
-    kuma.x = (app.width - kuma.width) / 2;
-    kuma.y = (app.height - kuma.height) / 2;
-    kuma.frame = 0;
-    kuma.stars = [];
-    kuma.update = function() {
-        this.setFrameIndex(this.frame);
-    };
-    app.currentScene.addChild(kuma);
+    var player = Player();
+    player.x = (app.width - player.width) / 2;
+    player.y = (app.height - player.height) / 2;
 
-    var Star = tm.createClass({
-        superClass : Shape,
-        init : function() {
-            this.superInit(32, 32);
-            this.canvas.setColorStyle("white", "yellow")
-                    .fillStar(16, 16, 16, 5);
-        },
-        update : function() {
-            var a = Math.PI * 2 / kuma.stars.length;
-            var index = kuma.stars.indexOf(this);
-            this.x = Math.cos(app.frame * 0.2 + a * index) * 100;
-            this.y = Math.sin(app.frame * 0.2 + a * index) * 100;
-        }
-    });
+    app.currentScene.addChild(player);
 
-    app.currentScene.update = function(a) {
-        if (a.pointing.getPointingStart()) {
-            var x = a.pointing.x;
-            var y = a.pointing.y;
-            kuma.animation.moveTo(x, y, 1000, "easeInOutQuad");
-        }
-
-        if (app.frame % 150 === 0) {
-            var newStar = new Star();
-            kuma.stars.push(newStar);
-            kuma.addChild(newStar);
-        }
+    app.currentScene.update = function(app) {
     };
 
     app.run();
 });
+
+var Player = tm.createClass({
+    superClass: AnimationSprite,
+    init: function() {
+        this.superInit(32, 32, SpriteSheet({
+            frame: {
+                width: 64,
+                height: 64,
+                count: 7
+            },
+            image: "player"
+        }));
+
+        this.speed = 5;
+        this.attitude = 0;
+
+        this.backfire = AnimationSprite(24, 24, SpriteSheet({
+            frame: {
+                width: 64,
+                height: 64,
+                count : 2
+            },
+            image: "backfire"
+        }));
+        this.backfire.gotoAndPlay();
+        this.backfire.y = 20;
+        this.addChild(this.backfire);
+    },
+    update: function(app) {
+        var kb = app.keyboard;
+        if      (kb.getKey("up"))    this.y -= this.speed;
+        else if (kb.getKey("down"))  this.y += this.speed;
+        if      (kb.getKey("left"))  this.x -= this.speed;
+        else if (kb.getKey("right")) this.x += this.speed;
+
+        var angle = kb.getKeyAngle();
+        if (angle === null) {
+            this.attitude *= 0.8;
+        } else if (90 < angle && angle < 270) {
+            this.attitude -= 0.2;
+        } else if (angle < 90 || 270 < angle) {
+            this.attitude += 0.2;
+        } else {
+            this.attitude *= 0.8;
+        }
+
+        this.attitude = Math.clamp(this.attitude, -3, 3);
+        this.currentFrame = ~~(this.attitude) + 3;
+
+        for (var i = -5; i <= 5; i+= 5) {
+            Bullet(this, Vector2(0, 0).setAngle(-90 + i, 15));
+        }
+    }
+});
+
+var Bullet = tm.createClass({
+    superClass: CircleShape,
+    init: function(firer, velocity) {
+        this.superInit(10, 10, {
+            fillStyle: "red"
+        });
+        this.velocity = velocity;
+        this.rotation = velocity.toAngle() * Math.RAD_TO_DEG + 90;
+        this.x = firer.x + velocity.x;
+        this.y = firer.y + velocity.y;
+        firer.parent.addChild(this);
+    },
+    update: function(app) {
+        this.position.add(this.velocity)
+        if (this.y < -20) {
+            this.remove();
+        }
+    }
+})
 
 function require(namespace) {
     if (namespace === undefined || typeof (namespace) !== "object")
