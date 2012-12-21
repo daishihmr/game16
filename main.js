@@ -17,14 +17,28 @@ tm.main(function() {
     var player = Player();
     player.x = (app.width - player.width) / 2;
     player.y = (app.height - player.height) / 2;
-
     app.currentScene.addChild(player);
+
+    var boss = Boss();
+    boss.x = (app.width - player.width) / 2;
+    boss.y = 50;
+    app.currentScene.addChild(boss);
 
     app.currentScene.update = function(app) {
     };
 
     app.run();
 });
+
+var Boss = tm.createClass({
+    superClass: CircleShape,
+    init: function() {
+        this.superInit(64, 64);
+    },
+    update: function(app) {
+
+    }
+})
 
 var Player = tm.createClass({
     superClass: AnimationSprite,
@@ -74,9 +88,9 @@ var Player = tm.createClass({
         this.attitude = Math.clamp(this.attitude, -3, 3);
         this.currentFrame = ~~(this.attitude) + 3;
 
-        for (var i = -5; i <= 5; i+= 5) {
-            Bullet(this, Vector2(0, 0).setAngle(-90 + i, 15));
-        }
+        // for (var i = -5; i <= 5; i+= 5) {
+        //     Bullet(this, Vector2(0, 0).setAngle(-90 + i, 15));
+        // }
     }
 });
 
