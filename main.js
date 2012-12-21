@@ -16,13 +16,23 @@ tm.main(function() {
 
     var player = Player();
     player.x = (app.width - player.width) / 2;
-    player.y = (app.height - player.height) / 2;
+    player.y = app.height - 50;
     app.currentScene.addChild(player);
 
     var boss = Boss();
     boss.x = (app.width - player.width) / 2;
     boss.y = 50;
     app.currentScene.addChild(boss);
+
+    var attackPattern = tm.bulletml.AttackPattern(attackPatterns[0]);
+    var ticker = attackPattern.createTicker({
+        rank: 0,
+        target: player,
+        speedRate: 3
+    });
+    boss.update = function(app) {
+        ticker.apply(this);
+    };
 
     app.currentScene.update = function(app) {
     };
@@ -33,7 +43,7 @@ tm.main(function() {
 var Boss = tm.createClass({
     superClass: CircleShape,
     init: function() {
-        this.superInit(64, 64);
+        this.superInit(32, 32);
     },
     update: function(app) {
 
