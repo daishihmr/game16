@@ -51,16 +51,38 @@ tm.preload(function() {
 
     attackPatterns[1] = new BulletML.Root({
         top: action([
-            fire(bullet("b"))
+            fire(bullet())
         ])
     });
 
     attackPatterns[2] = new BulletML.Root({
         top: action([
-            repeat(1000, action([
-                fire(bullet("b")),
+            repeat(50, action([
+                fire(bullet()),
                 wait(5)
             ]))
         ])
+    });
+
+    attackPatterns[3] = new BulletML.Root({
+        top: action(
+            repeat(5, action(
+                function() {
+                    var a = [];
+                    for (var i = 0; i < 4; i++) {
+                        a.push(action(
+                            fire(bullet(), direction(i)),
+                            repeat(30,
+                                action(fire(bullet(), direction(12, "sequence")))
+                            ),
+                            wait(3)
+                        ));
+                    }
+
+                    a.push(wait(20));
+                    return a;
+                }
+            ))
+        )
     });
 });

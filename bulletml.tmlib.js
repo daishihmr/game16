@@ -69,6 +69,12 @@ tm.bulletml = tm.bulletml || {};
                 this.x += ticker.speedH * conf.speedRate;
                 this.y += ticker.speedV * conf.speedRate;
 
+                if (!conf.testInWorld(this)) {
+                    this.remove();
+                    this.dispatchEvent(tm.event.Event("removed"));
+                    return;
+                }
+
                 // proccess walker
                 if (ticker.age < ticker.waitTo || ticker.completed) {
                     return;
@@ -100,11 +106,13 @@ tm.bulletml = tm.bulletml || {};
                         break;
                     case "vanish":
                         this.remove();
+                        this.dispatchEvent(tm.event.Event("removed"));
                         break;
                     }
                 }
 
                 ticker.completed = true;
+                this.dispatchEvent(tm.event.Event("completeattack"));
             };
 
             if (typeof(action) === "string") {
@@ -188,9 +196,9 @@ tm.bulletml = tm.bulletml || {};
             b.x = this.x;
             b.y = this.y;
 
-            b.update = function() {
+            b.addEventListener("enterframe", function() {
                 bt.apply(this);
-            };
+            });
             if (config.addTarget) {
                 config.addTarget.addChild(b);
             } else if (this.parent) {
@@ -235,12 +243,12 @@ tm.bulletml = tm.bulletml || {};
 
     function radiusAtoB(a, b) {
         var ca = {
-            x : a.x + (a.width || 0) / 2,
-            y : a.y + (a.height || 0) / 2
+            x : a.x,
+            y : a.y
         };
         var cb = {
-            x : b.x + (b.width || 0) / 2,
-            y : b.y + (b.height || 0) / 2
+            x : b.x,
+            y : b.y
         };
         return Math.atan2(cb.y - ca.y, cb.x - ca.x);
     }

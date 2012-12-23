@@ -7,34 +7,60 @@ tm.preload(function() {
     TextureManager.add("backfire", "assets/backfire.png");
 });
 
+var SCREEN_WIDTH = 465;
+var SCREEN_HEIGHT = 465;
+var SCREEN_CENTER_X = SCREEN_WIDTH / 2;
+var SCREEN_CENTER_Y = SCREEN_HEIGHT / 2;
+
+var app = null;
+
 tm.main(function() {
-    var app = CanvasApp("#main");
-    app.fps = 30;
-    app.resize(320, 480);
+    app = CanvasApp("#main");
+    app.fps = 60;
+    app.resize(SCREEN_WIDTH, SCREEN_HEIGHT);
     app.fitWindow();
     app.background = "rgba(0, 0, 0, 0.3)";
 
     var player = Player();
-    player.x = (app.width - player.width) / 2;
-    player.y = app.height - 50;
+    player.x = SCREEN_CENTER_X;
+    player.y = SCREEN_HEIGHT - 50;
     app.currentScene.addChild(player);
 
-    var boss = Boss();
-    boss.x = (app.width - player.width) / 2;
+    var boss = Boss(player);
+    boss.x = SCREEN_CENTER_X;
     boss.y = 50;
     app.currentScene.addChild(boss);
 
-    var attackPattern = tm.bulletml.AttackPattern(attackPatterns[0]);
-    var ticker = attackPattern.createTicker({
-        rank: 0,
-        target: player,
-        speedRate: 3
-    });
-    boss.update = function(app) {
-        ticker.apply(this);
-    };
+    var bulletList = [];
 
-    app.currentScene.update = function(app) {
+    var attackParam = {
+        target: player,
+        testInWorld: function(bullet) {
+            return 0 <= bullet.x && bullet.x <= SCREEN_WIDTH &&
+                0 <= bullet.y && bullet.y <= SCREEN_HEIGHT;
+        },
+        bulletFactory: function(spec) {
+            var bullet = Bullet();
+            bulletList.push(bullet);
+            return bullet;
+        }
+    };
+    var attackPattern = tm.bulletml.AttackPattern(attackPatterns[2]);
+    boss.update = attackPattern.createTicker(attackParam);
+
+    boss.addEventListener("completeattack", function() {
+        attackPattern = tm.bulletml.AttackPattern(attackPatterns[3]);
+        this.update = attackPattern.createTicker(attackParam);
+    });
+
+    app.currentScene.update = function() {
+        for (var i = 0, end = bulletList.length; i < end; i++) {
+            var bullet = bulletList[i];
+            if (bullet.active && player.isHitElement(bullet)) {
+                app.stop();
+                break;
+            }
+        }
     };
 
     app.run();
@@ -42,11 +68,8 @@ tm.main(function() {
 
 var Boss = tm.createClass({
     superClass: CircleShape,
-    init: function() {
+    init: function(target) {
         this.superInit(32, 32);
-    },
-    update: function(app) {
-
     }
 })
 
@@ -62,8 +85,15 @@ var Player = tm.createClass({
             image: "player"
         }));
 
+        this.radius = 2;
         this.speed = 5;
         this.attitude = 0;
+
+        this.marker = CircleShape(6, 6, {
+            fillStyle: "#f00",
+            strokeStyle: "none"
+        });
+        this.addChild(this.marker);
 
         this.backfire = AnimationSprite(24, 24, SpriteSheet({
             frame: {
@@ -71,11 +101,16 @@ var Player = tm.createClass({
                 height: 64,
                 count : 2
             },
+            animations: {
+                "main": [ 0, 2, "main", 2 ]
+            },
             image: "backfire"
         }));
-        this.backfire.gotoAndPlay();
+        this.backfire.gotoAndPlay("main");
         this.backfire.y = 20;
         this.addChild(this.backfire);
+
+        this.beforePosition = this.position;
     },
     update: function(app) {
         var kb = app.keyboard;
@@ -84,12 +119,22 @@ var Player = tm.createClass({
         if      (kb.getKey("left"))  this.x -= this.speed;
         else if (kb.getKey("right")) this.x += this.speed;
 
-        var angle = kb.getKeyAngle();
-        if (angle === null) {
-            this.attitude *= 0.8;
-        } else if (90 < angle && angle < 270) {
+        var p = app.pointing;
+        if (p.getPointing()) {
+            this.x += p.deltaPosition.x * 1.25;
+            this.y += p.deltaPosition.y * 1.25;
+        }
+
+        if (this.x < 0) this.x = 0;
+        else if (SCREEN_WIDTH < this.x) this.x = SCREEN_WIDTH;
+        if (this.y < 0) this.y = 0;
+        else if (SCREEN_HEIGHT < this.y) this.y = SCREEN_HEIGHT;
+
+        var deltaX = this.x - this.beforePosition.x;
+
+        if (deltaX < 0) {
             this.attitude -= 0.2;
-        } else if (angle < 90 || 270 < angle) {
+        } else if (0 < deltaX) {
             this.attitude += 0.2;
         } else {
             this.attitude *= 0.8;
@@ -98,6 +143,8 @@ var Player = tm.createClass({
         this.attitude = Math.clamp(this.attitude, -3, 3);
         this.currentFrame = ~~(this.attitude) + 3;
 
+        this.beforePosition = this.position.clone();
+
         // for (var i = -5; i <= 5; i+= 5) {
         //     Bullet(this, Vector2(0, 0).setAngle(-90 + i, 15));
         // }
@@ -105,24 +152,21 @@ var Player = tm.createClass({
 });
 
 var Bullet = tm.createClass({
-    superClass: CircleShape,
-    init: function(firer, velocity) {
-        this.superInit(10, 10, {
-            fillStyle: "red"
+    superClass: StarShape,
+    init: function() {
+        this.superInit(16, 16, {
+            strokeStyle: "none"
         });
-        this.velocity = velocity;
-        this.rotation = velocity.toAngle() * Math.RAD_TO_DEG + 90;
-        this.x = firer.x + velocity.x;
-        this.y = firer.y + velocity.y;
-        firer.parent.addChild(this);
+        this.radius = 5;
+        this.active = true;
+        this.addEventListener("removed", function() {
+            this.active = false;
+        });
     },
     update: function(app) {
-        this.position.add(this.velocity)
-        if (this.y < -20) {
-            this.remove();
-        }
+        this.rotation += 10;
     }
-})
+});
 
 function require(namespace) {
     if (namespace === undefined || typeof (namespace) !== "object")
