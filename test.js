@@ -50,5 +50,10 @@ tm.main(function() {
     app.currentScene.update = function() {
     };
 
+    var startLabel = tm.app.Label("start " + new Date());
+    startLabel.debugBox = true;
+    startLabel.width = 300;
+    startLabel.y = 50;
+    screen.addChild(startLabel);
     app.run();
 });
