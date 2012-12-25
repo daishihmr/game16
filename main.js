@@ -88,24 +88,28 @@ tm.main(function() {
     screen.addChild(boss);
 
     var attackParam = {
+        rank: 0.5,
         target: player,
         testInWorld: function(bullet) {
             return 0 <= bullet.x && bullet.x <= SCREEN_WIDTH &&
                 0 <= bullet.y && bullet.y <= SCREEN_HEIGHT;
         },
         bulletFactory: function(spec) {
-            return new Bullet(player);
+            return new Bullet(player, spec.label);
         }
     };
 
-    var ptIdx = -1;
+    var ptIdx = 0;
     var ptLen = attackPatterns.length;
-    boss.addEventListener("completeattack", function() {
-        ptIdx = (ptIdx + 1) % ptLen;
-        var attackPattern = new AttackPattern(attackPatterns[ptIdx]);
-        boss.update = attackPattern.createTicker(attackParam);
-    });
-    boss.dispatchEvent(new Event("completeattack"));
+    var attackPattern = new AttackPattern(attackPatterns[ptIdx]);
+    boss.update = attackPattern.createTicker(attackParam);
+
+    // boss.addEventListener("completeattack", function() {
+        // ptIdx = (ptIdx + 1) % ptLen;
+        // var attackPattern = new AttackPattern(attackPatterns[ptIdx]);
+        // boss.update = attackPattern.createTicker(attackParam);
+    // });
+    // boss.dispatchEvent(new Event("completeattack"));
 
     app.run();
 });
@@ -200,14 +204,19 @@ var Player = tm.createClass({
 
 var Bullet = tm.createClass({
     superClass: CircleShape,
-    init: function(target) {
+    init: function(target, col) {
+        var color;
+        if (col === "blue") {
+            color = Bullet.BLUE.toStyle();
+        } else {
+            color = Bullet.RED.toStyle();
+        }
         this.superInit(16, 16, {
-            fillStyle: Bullet.GRAD.toStyle(),
+            fillStyle: color,
             strokeStyle: "none"
         });
         this.radius = 2;
         this.blendMode = "lighter";
-
         this.target = target;
     },
     update: function() {
@@ -216,9 +225,15 @@ var Bullet = tm.createClass({
         }
     }
 });
-Bullet.GRAD = new RadialGradient(8, 8, 0, 8, 8, 8);
-Bullet.GRAD.addColorStopList([
+Bullet.RED = new RadialGradient(8, 8, 0, 8, 8, 8);
+Bullet.RED.addColorStopList([
     { offset: 0.0, color: "rgba(255,255,255,1.0)" },
     { offset: 0.4, color: "rgba(255,255,255,1.0)" },
     { offset: 1.0, color: "rgba(255,0,0,0.0)" }
+]);
+Bullet.BLUE = new RadialGradient(8, 8, 0, 8, 8, 8);
+Bullet.BLUE.addColorStopList([
+    { offset: 0.0, color: "rgba(255,255,255,1.0)" },
+    { offset: 0.4, color: "rgba(255,255,255,1.0)" },
+    { offset: 1.0, color: "rgba(0,0,255,0.0)" }
 ]);

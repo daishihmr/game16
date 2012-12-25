@@ -8,7 +8,40 @@ tm.bulletml = tm.bulletml || {};
         },
         _bulletml: null,
         createTicker: function(config, action) {
-            return this._createTicker(config, action);
+            var topLabels = this._bulletml.getTopActionLabels();
+            if (action === undefined && topLabels.length > 0) {
+                var tickers = [];
+                for (var i = 0, end = topLabels.length; i < end; i++) {
+                    tickers[tickers.length] = this._createTicker(config, topLabels[i]);
+                }
+                var parentTicker = function() {
+                    if (parentTicker.completed) return;
+
+                    for (var i = tickers.length; i--; ) {
+                        tickers[i].call(this);
+                    }
+                    if (parentTicker.compChildCount == tickers.length) {
+                        parentTicker.completed = true;
+                        this.dispatchEvent(tm.event.Event("completeattack"));
+                    }
+                };
+                for (var i = tickers; i--; ) {
+                    tickers[i].parentTicker = parentTicker;
+                }
+
+                parentTicker.compChildCount = 0;
+                parentTicker.completeChild = function() {
+                    this.compChildCount++;
+                };
+
+                parentTicker.compChildCount = 0;
+                parentTicker.completed = false;
+                parentTicker.isDanmaku = true;
+
+                return parentTicker;
+            } else {
+                return this._createTicker(config, action);
+            }
         },
         _createTicker: function(config, action) {
             config = (function(base) {

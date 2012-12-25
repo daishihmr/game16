@@ -341,7 +341,7 @@ BulletML.global = this;
                 return result;
             } else {
                 this.popStack();
-                if (!this._action) {
+                if (this._action === null) {
                     return;
                 }
                 n = this._action.commands[this._cursor];
@@ -1450,10 +1450,16 @@ BulletML.global = this;
         }
     }
     function each(element, filter, callback) {
+console.log("element", element);
+console.log("filter", filter);
         var children = element.childNodes;
         for ( var i = 0, end = children.length; i < end; i++) {
+console.log("tagName = [" + children[i].tagName + "]");
             if (children[i].tagName && children[i].tagName.toLowerCase().match(filter)) {
+console.log("   -> match! " + children[i].tagName.toLowerCase());
                 callback(children[i]);
+            } else {
+console.log("   -> unmatch!");
             }
         }
     }
