@@ -85,4 +85,27 @@ tm.preload(function() {
             ))
         )
     });
+
+    var syncGet = function(url, patternIndex) {
+        var check = {
+            loaded: false,
+            isLoaded: function() {
+                return this.loaded;
+            }
+        };
+        tm.addLoadCheckList(check);
+        tm.util.Ajax.load({
+            url: url,
+            dataType: "xml",
+            type: "GET",
+            success: function(xml) {
+                attackPatterns[patternIndex] = BulletML.build(xml);
+                check.loaded = true;
+                console.log(attackPatterns[patternIndex]);
+            }
+        });
+    };
+
+    syncGet("assets/[G_DARIUS]_homing_laser.xml", 4);
+
 });

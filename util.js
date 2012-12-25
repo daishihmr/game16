@@ -1,4 +1,5 @@
-var CanvasScreen = tm.createClass({
+var myutil = {};
+myutil.CanvasScreen = tm.createClass({
     superClass: tm.app.CanvasElement,
     init: function(width, height) {
         this.superInit();
@@ -50,3 +51,18 @@ var CanvasScreen = tm.createClass({
         context.restore();
     }
 });
+
+function require(namespace) {
+    if (namespace === undefined || typeof (namespace) !== "object")
+        return;
+
+    for ( var member in namespace) {
+        if (namespace.hasOwnProperty(member)) {
+            if ('A' <= member[0] && member[0] <= 'Z') {
+                if (tm.global[member] === undefined) {
+                    tm.global[member] = namespace[member];
+                }
+            }
+        }
+    }
+}

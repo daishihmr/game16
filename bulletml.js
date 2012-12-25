@@ -3,22 +3,22 @@
  * @author daishi@dev7.jp
  * @description
  * General-purpose parser BulletML.
- * 
+ *
  * This project has hosted by github.com (https://github.com/daishihmr/bulletml.js).
- * 
+ *
  * The MIT License (MIT)
  * Copyright (c) 2012 dev7.jp
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
  * the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included
  * in all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -37,7 +37,7 @@ BulletML.global = this;
 (function() {
     /**
      * BulletMLを解析し、JavaScriptオブジェクトツリーを生成する.
-     * 
+     *
      * @param {String|Document|Object} data 弾幕定義
      * @return {BulletML.Root}
      */
@@ -56,7 +56,7 @@ BulletML.global = this;
 
     /**
      * bulletmlのルート要素.
-     * 
+     *
      * @constructor
      */
     BulletML.Root = function(data) {
@@ -72,21 +72,21 @@ BulletML.global = this;
         this.root = this;
         /**
          * top level action elements.
-         * 
+         *
          * @type {Array.<BulletML.Action>}
          * @field
          */
         this.actions = [];
         /**
          * top level bullet elements.
-         * 
+         *
          * @type {Array.<BulletML.Bullet>}
          * @field
          */
         this.bullets = [];
         /**
          * top level fire elements.
-         * 
+         *
          * @type {Array.<BulletML.Fire>}
          * @field
          */
@@ -108,7 +108,7 @@ BulletML.global = this;
     };
     /**
      * find top level action element by label.
-     * 
+     *
      * @param {string}
      *            label label attribute value
      * @returns {BulletML.Action}
@@ -119,7 +119,7 @@ BulletML.global = this;
     };
     /**
      * find actions label starts with 'top'.
-     * 
+     *
      * @returns Array.<BulletML.Action>
      * @memberOf BulletML.Root.prototype
      */
@@ -136,7 +136,7 @@ BulletML.global = this;
     /**
      * find top level action element by label. throw error if action is
      * undefined.
-     * 
+     *
      * @param {string}
      *            label label attribute value
      * @returns {BulletML.Action}
@@ -152,7 +152,7 @@ BulletML.global = this;
     };
     /**
      * find top level bullet element by label.
-     * 
+     *
      * @param {string}
      *            label label attribute value
      * @returns {BulletML.Bullet}
@@ -164,7 +164,7 @@ BulletML.global = this;
     /**
      * find top level bullet element by label. throw error if bullet is
      * undefined.
-     * 
+     *
      * @param {string}
      *            label label attribute value
      * @returns {BulletML.Bullet}
@@ -180,7 +180,7 @@ BulletML.global = this;
     };
     /**
      * find top level fire element by label.
-     * 
+     *
      * @param {string}
      *            label label attribute value
      * @returns {BulletML.Fire}
@@ -191,7 +191,7 @@ BulletML.global = this;
     };
     /**
      * find top level fire element by label. throw error if fire is undefined.
-     * 
+     *
      * @param {string}
      *            label label attribute value
      * @returns {BulletML.Fire}
@@ -435,7 +435,7 @@ BulletML.global = this;
 
     /**
      * bullet要素.
-     * 
+     *
      * @constructor
      */
     BulletML.Bullet = function() {
@@ -528,9 +528,9 @@ BulletML.global = this;
 
     /**
      * 命令を表す抽象クラス.
-     * 
+     *
      * Actionのcommands配列に格納される.
-     * 
+     *
      * @constructor
      */
     BulletML.Command = function() {
@@ -894,6 +894,7 @@ BulletML.global = this;
         var actions = root.getElementsByTagName("action");
         if (actions) {
             for ( var i = 0, end = actions.length; i < end; i++) {
+                if (actions[i].parentNode !== root) continue;
                 var newAction = parseAction(result, actions[i]);
                 if (newAction) {
                     result.actions[result.actions.length] = newAction;
@@ -905,6 +906,7 @@ BulletML.global = this;
         var bullets = root.getElementsByTagName("bullet");
         if (bullets) {
             for ( var i = 0, end = bullets.length; i < end; i++) {
+                if (bullets[i].parentNode !== root) continue;
                 var newBullet = parseBullet(result, bullets[i]);
                 if (newBullet) {
                     result.bullets[result.bullets.length] = newBullet;
@@ -916,6 +918,7 @@ BulletML.global = this;
         var fires = root.getElementsByTagName("fire");
         if (fires) {
             for ( var i = 0, end = fires.length; i < end; i++) {
+                if (fires[i].parentNode !== root) continue;
                 var newFire = parseFire(result, fires[i]);
                 if (newFire) {
                     result.fires[result.fires.length] = newFire;
@@ -932,12 +935,12 @@ BulletML.global = this;
             result.label = label;
         });
         each(element, ".", function(commandElm) {
-            switch (commandElm.tagName) {
+            switch (commandElm.tagName.toLowerCase()) {
             case "action":
                 result.commands[result.commands.length] = parseAction(root,
                         commandElm);
                 break;
-            case "actionRef":
+            case "actionref":
                 result.commands[result.commands.length] = parseActionRef(root,
                         commandElm);
                 break;
@@ -945,15 +948,15 @@ BulletML.global = this;
                 result.commands[result.commands.length] = parseFire(root,
                         commandElm);
                 break;
-            case "fireRef":
+            case "fireref":
                 result.commands[result.commands.length] = parseFireRef(root,
                         commandElm);
                 break;
-            case "changeDirection":
+            case "changedirection":
                 result.commands[result.commands.length] = parseChangeDirection(
                         root, commandElm);
                 break;
-            case "changeSpeed":
+            case "changespeed":
                 result.commands[result.commands.length] = parseChangeSpeed(
                         root, commandElm);
                 break;
@@ -1007,10 +1010,10 @@ BulletML.global = this;
             result.speed = parseSpeed(speed);
         });
         each(element, /(action)|(actionRef)$/, function(action) {
-            if (action.tagName == "action") {
+            if (action.tagName.toLowerCase() == "action") {
                 result.actions[result.actions.length] = parseAction(root,
                         action);
-            } else if (action.tagName == "actionRef") {
+            } else if (action.tagName.toLowerCase() == "actionref") {
                 result.actions[result.actions.length] = parseActionRef(root,
                         action);
             }
@@ -1049,7 +1052,7 @@ BulletML.global = this;
         get(element, "bullet", function(bullet) {
             result.bullet = parseBullet(root, bullet);
         });
-        get(element, "bulletRef", function(bulletRef) {
+        get(element, "bulletref", function(bulletRef) {
             result.bullet = parseBulletRef(root, bulletRef);
         });
 
@@ -1435,7 +1438,7 @@ BulletML.global = this;
     function get(element, tagName, callback, ifNotFound) {
         var children = element.childNodes;
         for ( var i = 0, end = children.length; i < end; i++) {
-            if (children[i].tagName && children[i].tagName == tagName) {
+            if (children[i].tagName && children[i].tagName.toLowerCase() == tagName) {
                 if (callback) {
                     callback(children[i]);
                 }
@@ -1449,7 +1452,7 @@ BulletML.global = this;
     function each(element, filter, callback) {
         var children = element.childNodes;
         for ( var i = 0, end = children.length; i < end; i++) {
-            if (children[i].tagName && children[i].tagName.match(filter)) {
+            if (children[i].tagName && children[i].tagName.toLowerCase().match(filter)) {
                 callback(children[i]);
             }
         }

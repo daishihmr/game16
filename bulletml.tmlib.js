@@ -13,16 +13,13 @@ tm.bulletml = tm.bulletml || {};
         _createTicker: function(config, action) {
             config = (function(base) {
                 var result = {};
-                var d = tm.bulletml.AttackPattern.DEFAULT_CONFIG;
-                for (var prop in d) {
-                    if (d.hasOwnProperty(prop)) {
-                        result[prop] = d[prop];
-                    }
-                }
-                if (base !== undefined) {
-                    for (var prop in base) {
-                        if (base.hasOwnProperty(prop)) {
-                            result[prop] = base[prop];
+                var def = tm.bulletml.AttackPattern.DEFAULT_CONFIG;
+                for (var prop in def) {
+                    if (def.hasOwnProperty(prop)) {
+                        if (base !== undefined) {
+                            result[prop] = base[prop] || def[prop];
+                        } else {
+                            result[prop] = def[prop];
                         }
                     }
                 }
@@ -30,7 +27,6 @@ tm.bulletml = tm.bulletml || {};
                 return result;
             })(config);
 
-            action = action || "top";
             var ticker = function() {
                 ticker.age += 1;
                 var conf = ticker.config;
@@ -115,6 +111,7 @@ tm.bulletml = tm.bulletml || {};
                 this.dispatchEvent(tm.event.Event("completeattack"));
             };
 
+            action = action || "top";
             if (typeof(action) === "string") {
                 ticker.walker = this._bulletml.getWalker(action, config.rank);
             } else if (action instanceof BulletML.Bullet) {
@@ -196,9 +193,7 @@ tm.bulletml = tm.bulletml || {};
             b.x = this.x;
             b.y = this.y;
 
-            b.addEventListener("enterframe", function() {
-                bt.apply(this);
-            });
+            b.addEventListener("enterframe", bt);
             if (config.addTarget) {
                 config.addTarget.addChild(b);
             } else if (this.parent) {
@@ -206,18 +201,95 @@ tm.bulletml = tm.bulletml || {};
             }
         },
         _changeDirection: function(cmd, config, ticker) {
-
+            var d = eval(cmd.direction.value);
+            var t = eval(cmd.term);
+            switch (cmd.direction.type) {
+            case "aim":
+                var tar = config.target;
+                if (!tar) {
+                    return;
+                }
+                ticker.dirFin = radiusAtoB(this, tar) + d * Math.DEG_TO_RAD;
+                ticker.dirIncr = normalizeRadian(ticker.dirFin - ticker.direction) / t;
+                break;
+            case "absolute":
+                ticker.dirFin = d * Math.DEG_TO_RAD - Math.PI / 2;
+                ticker.dirIncr = normalizeRadian(ticker.dirFin - ticker.direction) / t;
+                break;
+            case "relative":
+                ticker.dirFin = ticker.direction + d * Math.DEG_TO_RAD;
+                ticker.dirIncr = normalizeRadian(ticker.dirFin - ticker.direction) / t;
+                break;
+            case "sequence":
+                ticker.dirIncr = d * Math.DEG_TO_RAD;
+                ticker.dirFin = ticker.direction + ticker.dirIncr * t;
+                break;
+            }
+            ticker.chDirEnd = ticker.age + t;
         },
         _changeSpeed: function(cmd, ticker) {
-
+            var s = eval(cmd.speed.value);
+            var t = eval(cmd.term);
+            switch (cmd.speed.type) {
+            case "absolute":
+                ticker.spdFin = s;
+                ticker.spdIncr = (ticker.spdFin - ticker.speed) / t;
+                break;
+            case "relative":
+                ticker.spdFin = s + ticker.speed;
+                ticker.spdIncr = (ticker.spdFin - ticker.speed) / t;
+                break;
+            case "sequence":
+                ticker.spdIncr = s;
+                ticker.spdFin = ticker.speed + ticker.spdIncr * t;
+                break;
+            }
+            ticker.chSpdEnd = ticker.age + t;
         },
         _accel: function(cmd, ticker) {
+            var t = eval(cmd.term);
+            ticker.aclEnd = ticker.age + t;
 
+            if (cmd.horizontal) {
+                var h = eval(cmd.horizontal.value);
+                switch (cmd.horizontal.type) {
+                case "absolute":
+                case "sequence":
+                    ticker.aclIncrH = (h - ticker.speedH) / t;
+                    ticker.aclFinH = h;
+                    break;
+                case "relative":
+                    ticker.aclIncrH = h;
+                    ticker.aclFinH = (h - ticker.speedH) * t;
+                    break;
+                }
+            } else {
+                ticker.aclIncrH = 0;
+                ticker.aclFinH = ticker.speedH;
+            }
+
+            if (cmd.vertical) {
+                var v = eval(cmd.vertical.value);
+                switch (cmd.vertical.type) {
+                case "absolute":
+                case "sequence":
+                    ticker.aclIncrV = (v - ticker.speedV) / t;
+                    ticker.aclFinV = v;
+                    break;
+                case "relative":
+                    ticker.aclIncrV = v;
+                    ticker.aclFinV = (v - ticker.speedV) * t;
+                    break;
+                }
+            } else {
+                ticker.aclIncrV = 0;
+                ticker.aclFinV = ticker.speedV;
+            }
         }
     });
 
     tm.bulletml.defaultBulletFactory = function(spec) {
-        var result = tm.app.CircleShape(8, 8);
+        var result = tm.app.CircleShape(4, 4);
         result.label = spec.label;
         return result;
     };
@@ -231,15 +303,19 @@ tm.bulletml = tm.bulletml || {};
         testInWorld: tm.bulletml.defaultTestInWorld,
         rank: 0,
         updateProperties: false,
-        speedRate: 2
+        speedRate: 2,
+        target: null
     };
 
-    tm.bulletml.Bullet = tm.createClass({
-        superClass: tm.app.CanvasElement,
-        init: function() {
-            this.superInit();
+    function normalizeRadian(radian) {
+        while (radian <= -Math.PI) {
+            radian += Math.PI * 2;
         }
-    });
+        while (Math.PI < radian) {
+            radian -= Math.PI * 2;
+        }
+        return radian;
+    }
 
     function radiusAtoB(a, b) {
         var ca = {

@@ -1,37 +1,91 @@
 require(tm.app);
 require(tm.graphics);
 require(tm.geom);
+require(tm.event);
+require(tm.bulletml);
+require(myutil);
+
+var SCREEN_WIDTH = 320;
+var SCREEN_HEIGHT = 400;
+var BORDER_WIDTH = 4;
+
+var app = null;
 
 tm.preload(function() {
     TextureManager.add("player", "assets/player.png");
     TextureManager.add("backfire", "assets/backfire.png");
 });
 
-var SCREEN_WIDTH = 465;
-var SCREEN_HEIGHT = 465;
-var SCREEN_CENTER_X = SCREEN_WIDTH / 2;
-var SCREEN_CENTER_Y = SCREEN_HEIGHT / 2;
-
-var app = null;
-
 tm.main(function() {
-    app = CanvasApp("#main");
+    app = new CanvasApp("#main");
+    var _fitFunc = function() {
+        if (window.innerWidth > window.innerHeight) {
+            app.resize(SCREEN_HEIGHT + BORDER_WIDTH*2, SCREEN_HEIGHT + BORDER_WIDTH*2);
+        } else {
+            app.resize(SCREEN_WIDTH + BORDER_WIDTH*2,
+                (SCREEN_WIDTH + BORDER_WIDTH*2) * window.innerHeight/window.innerWidth);
+        }
+
+        var e = this.element;
+        var s = e.style;
+
+        s.position = "absolute";
+        s.left = "0px";
+        s.top  = "0px";
+
+        var rateWidth = e.width/window.innerWidth;
+        var rateHeight= e.height/window.innerHeight;
+        var rate = e.height/e.width;
+
+        if (rateWidth > rateHeight) {
+            s.width  = innerWidth+"px";
+            s.height = innerWidth*rate+"px";
+        }
+        else {
+            s.width  = innerHeight/rate+"px";
+            s.height = innerHeight+"px";
+        }
+    }.bind(app);
+    _fitFunc();
+    window.addEventListener("resize", _fitFunc, false);
+    window.addEventListener("orientationchange", _fitFunc, false);
+
     app.fps = 60;
-    app.resize(SCREEN_WIDTH, SCREEN_HEIGHT);
-    app.fitWindow();
-    app.background = "rgba(0, 0, 0, 0.3)";
+    app.background = "rgb(0,0,80)";
 
-    var player = Player();
-    player.x = SCREEN_CENTER_X;
+    var screen = new CanvasScreen(SCREEN_WIDTH, SCREEN_HEIGHT);
+    screen.x = screen.width / 2 + BORDER_WIDTH;
+    screen.y = screen.height / 2 + BORDER_WIDTH;
+    screen.drawStroke = true;
+    app.currentScene.addChild(screen);
+
+    for (var i = 0; i < 100; i++) {
+        var star = tm.app.CircleShape(4, 4, {
+            fillStyle: "rgb(80,80,80)",
+            strokeStyle: "none"
+        });
+        star.x = tm.util.Random.randint(0, SCREEN_WIDTH);
+        star.y = tm.util.Random.randint(0, SCREEN_HEIGHT);
+        star.speed = tm.util.Random.randint(5, 15);
+        star.update = function() {
+            this.y += this.speed;
+            if (this.y > SCREEN_HEIGHT + 10) {
+                this.y -= SCREEN_HEIGHT + 10;
+                this.speed = tm.util.Random.randint(5, 15);
+            }
+        }
+        screen.addChild(star);
+    }
+
+    var player = new Player();
+    player.x = SCREEN_WIDTH / 2;
     player.y = SCREEN_HEIGHT - 50;
-    app.currentScene.addChild(player);
+    screen.addChild(player);
 
-    var boss = Boss(player);
-    boss.x = SCREEN_CENTER_X;
+    var boss = new Boss(player);
+    boss.x = SCREEN_WIDTH / 2;
     boss.y = 50;
-    app.currentScene.addChild(boss);
-
-    var bulletList = [];
+    screen.addChild(boss);
 
     var attackParam = {
         target: player,
@@ -40,28 +94,18 @@ tm.main(function() {
                 0 <= bullet.y && bullet.y <= SCREEN_HEIGHT;
         },
         bulletFactory: function(spec) {
-            var bullet = Bullet();
-            bulletList.push(bullet);
-            return bullet;
+            return new Bullet(player);
         }
     };
-    var attackPattern = tm.bulletml.AttackPattern(attackPatterns[2]);
-    boss.update = attackPattern.createTicker(attackParam);
 
+    var ptIdx = -1;
+    var ptLen = attackPatterns.length;
     boss.addEventListener("completeattack", function() {
-        attackPattern = tm.bulletml.AttackPattern(attackPatterns[3]);
-        this.update = attackPattern.createTicker(attackParam);
+        ptIdx = (ptIdx + 1) % ptLen;
+        var attackPattern = new AttackPattern(attackPatterns[ptIdx]);
+        boss.update = attackPattern.createTicker(attackParam);
     });
-
-    app.currentScene.update = function() {
-        for (var i = 0, end = bulletList.length; i < end; i++) {
-            var bullet = bulletList[i];
-            if (bullet.active && player.isHitElement(bullet)) {
-                app.stop();
-                break;
-            }
-        }
-    };
+    boss.dispatchEvent(new Event("completeattack"));
 
     app.run();
 });
@@ -76,7 +120,7 @@ var Boss = tm.createClass({
 var Player = tm.createClass({
     superClass: AnimationSprite,
     init: function() {
-        this.superInit(32, 32, SpriteSheet({
+        this.superInit(48, 48, SpriteSheet({
             frame: {
                 width: 64,
                 height: 64,
@@ -89,13 +133,13 @@ var Player = tm.createClass({
         this.speed = 5;
         this.attitude = 0;
 
-        this.marker = CircleShape(6, 6, {
+        this.marker = new CircleShape(6, 6, {
             fillStyle: "#f00",
             strokeStyle: "none"
         });
         this.addChild(this.marker);
 
-        this.backfire = AnimationSprite(24, 24, SpriteSheet({
+        this.backfire = new AnimationSprite(24, 24, SpriteSheet({
             frame: {
                 width: 64,
                 height: 64,
@@ -144,41 +188,30 @@ var Player = tm.createClass({
         this.currentFrame = ~~(this.attitude) + 3;
 
         this.beforePosition = this.position.clone();
-
-        // for (var i = -5; i <= 5; i+= 5) {
-        //     Bullet(this, Vector2(0, 0).setAngle(-90 + i, 15));
-        // }
     }
 });
 
 var Bullet = tm.createClass({
-    superClass: StarShape,
-    init: function() {
+    superClass: CircleShape,
+    init: function(target) {
         this.superInit(16, 16, {
+            fillStyle: Bullet.GRAD.toStyle(),
             strokeStyle: "none"
         });
-        this.radius = 5;
-        this.active = true;
-        this.addEventListener("removed", function() {
-            this.active = false;
-        });
+        this.radius = 2;
+        this.blendMode = "lighter";
+
+        this.target = target;
     },
-    update: function(app) {
-        this.rotation += 10;
-    }
-});
-
-function require(namespace) {
-    if (namespace === undefined || typeof (namespace) !== "object")
-        return;
-
-    for ( var member in namespace) {
-        if (namespace.hasOwnProperty(member)) {
-            if ('A' <= member[0] && member[0] <= 'Z') {
-                if (tm.global[member] === undefined) {
-                    tm.global[member] = namespace[member];
-                }
-            }
+    update: function() {
+        if (this.isHitElement(this.target)) {
+            this.remove();
         }
     }
-}
+});
+Bullet.GRAD = new RadialGradient(8, 8, 0, 8, 8, 8);
+Bullet.GRAD.addColorStopList([
+    { offset: 0.0, color: "rgba(255,255,255,1.0)" },
+    { offset: 0.5, color: "rgba(255,255,255,1.0)" },
+    { offset: 1.0, color: "rgba(255,0,0,0.0)" }
+]);
