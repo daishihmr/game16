@@ -33,7 +33,6 @@ tm.main(function() {
             s.height = innerHeight+"px";
         }
     }.bind(app);
-
     // 一度実行しておく
     _fitFunc();
     // リサイズ時のリスナとして登録しておく

@@ -133,10 +133,17 @@ var Player = tm.createClass({
         this.speed = 5;
         this.attitude = 0;
 
-        this.marker = new CircleShape(6, 6, {
-            fillStyle: "#f00",
+        this.marker = new CircleShape(5, 5, {
+            fillStyle: "#f60",
             strokeStyle: "none"
         });
+        this.marker.update = function(app) {
+            if (~~(app.frame / 10) % 2 === 0) {
+                this.alpha = 0.6;
+            } else {
+                this.alpha = 0.3;
+            }
+        };
         this.addChild(this.marker);
 
         this.backfire = new AnimationSprite(24, 24, SpriteSheet({
@@ -212,6 +219,6 @@ var Bullet = tm.createClass({
 Bullet.GRAD = new RadialGradient(8, 8, 0, 8, 8, 8);
 Bullet.GRAD.addColorStopList([
     { offset: 0.0, color: "rgba(255,255,255,1.0)" },
-    { offset: 0.5, color: "rgba(255,255,255,1.0)" },
+    { offset: 0.4, color: "rgba(255,255,255,1.0)" },
     { offset: 1.0, color: "rgba(255,0,0,0.0)" }
 ]);

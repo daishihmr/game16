@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset=UTF-8>
+</head>
+<body>
+<canvas id="app"></canvas>
+<canvas id="out"></canvas>
+<script src="tmlib.js"></script>
+<script>
+var CELL_SIZE = 64;
+
+tm.main(function() {
+
+    var out = tm.dom.Element("#out");
+    var c = tm.graphics.Canvas(out.element);
+
+    var app = tm.app.CanvasApp("#app");
+    app.resize(CELL_SIZE, CELL_SIZE);
+
+    app.currentScene.update = function() {
+        if (Math.random() < 0.9) {
+            var vec = tm.geom.Vector2(0, 0).setAngle(
+                tm.util.Random.randfloat(0, 361),
+                tm.util.Random.randfloat(0.001, 0.1));
+            var p = Particle(vec);
+            p.x = CELL_SIZE / 2;
+            p.y = CELL_SIZE / 2;
+            this.addChild(p);
+        }
+    }
+
+    app.run();
+});
+
+var Particle = tm.createClass({
+    superClass: tm.app.CircleShape,
+    init: function(vec) {
+        var gra = tm.graphics.RadialGradient(5, 5, 0, 5, 5, 5);
+        gra.addColorStopList([
+            { offset: 0.00, color: "rgba(255, 255, 255, 1.00)" },
+            { offset: 0.50, color: "rgba(255, 255, 255, 0.50)" },
+            { offset: 1.00, color: "rgba(255,   0,   0, 0.00)" }
+        ]);
+        this.superInit(16, 16, {
+            strokeStyle: "none",
+            fillStyle: gra.toStyle()
+        });
+        this.alpha = 1.0;
+        this.blendMode = "lighter";
+        this.vec = vec;
+    },
+    update: function() {
+        this.scaleX += 0.01;
+        this.scaleY += 0.01;
+        this.position.add(this.vec);
+        this.vec.mul(1.01);
+        this.alpha *= 0.99;
+    }
+});
+</script>
+</body>
+</html>

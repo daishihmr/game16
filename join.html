@@ -1,31 +1,44 @@
 <!doctype html>
 <html>
+<head>
+    <meta charset=UTF-8>
+</head>
 <body>
-    <canvas id="out"></canvas>
-    <img id="img" />
-    <script src="https://raw.github.com/phi1618/tmlib.js/develop/build/tmlib.js"></script>
-    <script type="text/javascript">
-    tm.preload(function() {
-        for (var i = 0; i <= 6; i++)
-            tm.graphics.TextureManager.add("player"+i, "raw-assets/"+i+".PNG");
-
-        tm.graphics.TextureManager.add("backfire0", "raw-assets/backfire0.PNG");
-        tm.graphics.TextureManager.add("backfire1", "raw-assets/backfire1.PNG");
+↓ここにpngファイルをドラッグ＆ドロップ。保存するにはマウス中央ボタンクリック。<br>
+<canvas id="out" style="background:url(canvasBg.png)"></canvas>
+<script src="https://raw.github.com/phi1618/tmlib.js/develop/build/tmlib.js"></script>
+<script type="text/javascript">
+var CELL_SIZE = 64;
+var index = 0;
+tm.main(function() {
+    var out = tm.dom.Element("#out");
+    out.event.add("drop", function(e) {
+        e.preventDefault();
+        for(var i = 0, end = e.dataTransfer.files.length; i < end; i++) {
+            var file = e.dataTransfer.files[i];
+            if (file.type.indexOf("image/png") !== -1) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var img = new Image();
+                    img.src = e.target.result;
+                    img.onload = function() {
+                        var h = index % 8;
+                        var v = ~~(index / 8);
+                        outCanvas.drawImage(this, h*CELL_SIZE, v*CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                        index += 1;
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+        }
     });
-    tm.main(function() {
-        var canvas = tm.graphics.Canvas("#out");
-
-        canvas.resize(64 * 7, 64);
-        for (var i = 0; i <= 6; i++)
-            canvas.drawTexture(tm.graphics.TextureManager.get("player"+i), i*64, 0);
-
-        // canvas.resize(64 * 2, 64);
-        // canvas.drawTexture(tm.graphics.TextureManager.get("backfire0"), 0, 0);
-        // canvas.drawTexture(tm.graphics.TextureManager.get("backfire1"), 64, 0);
-
-        canvas.saveAsImage();
-
+    out.event.mdlclick(function() {
+        outCanvas.saveAsImage();
     });
-    </script>
+
+    var outCanvas = tm.graphics.Canvas(out.element);
+    outCanvas.resize(8*CELL_SIZE, 8*CELL_SIZE);
+});
+</script>
 </body>
 </html>
