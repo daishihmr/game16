@@ -11,13 +11,11 @@
 			</term>
 		</changeSpeed>
 	</action>
-
 	<bullet  label="Dummy">
 		<action>
 			<vanish/>
 		</action>
 	</bullet>
-
 	<bullet  label="blue">
 		<speed>
 			 3
@@ -26,7 +24,7 @@
 			<wait>
 				 10
 			</wait>
-			<actionRef  label="Stop"></actionRef>
+			<actionRef  label="Stop"/>
 			<repeat>
 				<times>
 					 16+$rank*16
@@ -72,7 +70,6 @@
 			<vanish/>
 		</action>
 	</bullet>
-
 	<action  label="xway">
 		<fire>
 			<direction  type="aim">
@@ -108,14 +105,15 @@
 							<speed  type="sequence">
 								0.08+$rank*0.08
 							</speed>
-							<bullet/>
+							<bullet>
+								<action/>
+							</bullet>
 						</fire>
 					</action>
 				</repeat>
 			</action>
 		</repeat>
 	</action>
-
 	<bullet  label="red">
 		<speed>
 			 3
@@ -124,7 +122,7 @@
 			<wait>
 				 10
 			</wait>
-			<actionRef  label="Stop"></actionRef>
+			<actionRef  label="Stop"/>
 			<repeat>
 				<times>
 					 5
@@ -143,7 +141,6 @@
 			<vanish/>
 		</action>
 	</bullet>
-
 	<action  label="top">
 		<fire>
 			<direction  type="absolute">

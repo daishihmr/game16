@@ -176,8 +176,8 @@ var Player = tm.createClass({
 
         var p = app.pointing;
         if (p.getPointing()) {
-            this.x += p.deltaPosition.x * 1.25;
-            this.y += p.deltaPosition.y * 1.25;
+            this.x += p.deltaPosition.x;
+            this.y += p.deltaPosition.y;
         }
 
         if (this.x < 0) this.x = 0;
@@ -228,12 +228,12 @@ var Bullet = tm.createClass({
 Bullet.RED = new RadialGradient(8, 8, 0, 8, 8, 8);
 Bullet.RED.addColorStopList([
     { offset: 0.0, color: "rgba(255,255,255,1.0)" },
-    { offset: 0.4, color: "rgba(255,255,255,1.0)" },
+    { offset: 0.2, color: "rgba(255,255,255,1.0)" },
     { offset: 1.0, color: "rgba(255,0,0,0.0)" }
 ]);
 Bullet.BLUE = new RadialGradient(8, 8, 0, 8, 8, 8);
 Bullet.BLUE.addColorStopList([
     { offset: 0.0, color: "rgba(255,255,255,1.0)" },
-    { offset: 0.4, color: "rgba(255,255,255,1.0)" },
+    { offset: 0.2, color: "rgba(255,255,255,1.0)" },
     { offset: 1.0, color: "rgba(0,0,255,0.0)" }
 ]);
