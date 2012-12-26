@@ -1,23 +1,154 @@
+/**
+ * @fileOverview bullet.tmlib.js
+ * @version 0.4.1
+ * @require tmlib.js
+ * @author daishi_hmr
+ *
+ * @description 弾幕記述言語BulletMLをtmlib.jsで扱うためのプラグイン
+ *
+ * @detail BulletMLのパースにはbulletml.jsを使用しています
+ *      bulletml.js: https://github.com/daishihmr/bulletml.js
+ *
+ * @example
+ *
+ */
+
+/**
+ * plugin namespace object
+ *
+ * @type {Object}
+ */
 tm.bulletml = tm.bulletml || {};
 
 (function() {
 
+    // syntax sugar.
+    // /**
+    //  * 弾幕enterframeイベントリスナを設定する.
+    //  */
+    // enchant.EventTarget.prototype.setDanmaku = function(attackPattern, config) {
+    //     if (attackPattern === void 0) throw new Error("AttackPattern is required.");
+    //     this.removeDanmaku();
+    //     this.on("enterframe", attackPattern.createTicker(config));
+    // };
+    // enchant.EventTarget.prototype.removeDanmaku = function() {
+    //     if (!this._listeners["enterframe"]
+    //             || this._listeners["enterframe"].length === 0) {
+    //         return;
+    //     }
+    //     var remove = [];
+    //     for ( var i = this._listeners["enterframe"].length; i--;) {
+    //         if (this._listeners["enterframe"][i].isDanmaku) {
+    //             remove[remove.length] = this._listeners["enterframe"][i];
+    //         }
+    //     }
+    //     for ( var i = remove.length; i--;) {
+    //         this.removeEventListener("enterframe", remove[i]);
+    //     }
+    // };
+
+    /**
+     * @scope enchant.bulletml.AttackPattern.prototype
+     */
     tm.bulletml.AttackPattern = tm.createClass({
+        /**
+         * 攻撃パターン.
+         *
+         * @constructs
+         * @param {BulletML.Root}
+         *            bulletml BulletMLデータ
+         */
         init: function(bulletml) {
+            if (!bulletml) {
+                throw new Error("argument is invalid.", bulletml);
+            }
             this._bulletml = bulletml;
         },
         _bulletml: null,
+        /**
+         * enterframeイベントのリスナを作成する.<br>
+         * <br>
+         * 第1引数configで各種設定を行う. <br>
+         *
+         *
+         * @param {Object|enchant.Node}
+         *            [config] 発射される弾に関する設定.<br>
+         *            <table border=1>
+         *            <tr>
+         *            <th>プロパティ名</th>
+         *            <th>型</th>
+         *            <th>設定内容</th>
+         *            <th>デフォルト値</th>
+         *            <th>必須</th>
+         *            </tr>
+         *            <tr>
+         *            <td>target</td>
+         *            <td>enchant.Node</td>
+         *            <td>攻撃の標的となるオブジェクト</td>
+         *            <td>null</td>
+         *            <td>○</td>
+         *            </tr>
+         *            <tr>
+         *            <td>addTarget</td>
+         *            <td>enchant.Group</td>
+         *            <td>生成した弾を追加するノード</td>
+         *            <td>攻撃を実行するノードのparentNode</td>
+         *            <td></td>
+         *            </tr>
+         *            <tr>
+         *            <td>bulletFactory</td>
+         *            <td>function</td>
+         *            <td>弾ノードを生成する関数</td>
+         *            <td>小さな赤い弾を生成</td>
+         *            <td></td>
+         *            </tr>
+         *            <tr>
+         *            <td>updateProperties</td>
+         *            <td>boolean</td>
+         *            <td>弾のプロパティ(direction, speed)を更新するかどうか</td>
+         *            <td>false</td>
+         *            <td></td>
+         *            </tr>
+         *            <tr>
+         *            <td>isInsideOfWorld</td>
+         *            <td>function</td>
+         *            <td>弾が画面内に存在することを判定する関数</td>
+         *            <td>Gameインスタンスの大きさをベースにして判定する</td>
+         *            <td></td>
+         *            </tr>
+         *            <tr>
+         *            <td>rank</td>
+         *            <td>number</td>
+         *            <td>弾幕ランク.BulletMLの$rankに対応する.0.0～1.0の範囲で指定.</td>
+         *            <td>0</td>
+         *            <td></td>
+         *            </tr>
+         *            <tr>
+         *            <td>speedRate</td>
+         *            <td>number</td>
+         *            <td>弾速度の補正倍率.</td>
+         *            <td>1</td>
+         *            <td></td>
+         *            </tr>
+         *            </table>
+         *            設定する項目がtargetのみの場合、標的オブジェクトを直接引数として渡すことが可能.
+         * @param {string}
+         *            [action] 最初に読み込むactionのラベル.<br>
+         *            省略可.
+         */
         createTicker: function(config, action) {
             var topLabels = this._bulletml.getTopActionLabels();
-            if (action === undefined && topLabels.length > 0) {
+            if (action === void 0 && topLabels.length > 0) {
+                // top***対応.
+                // actionラベルtop***が定義されていた場合、それらを同時に動かす.
                 var tickers = [];
-                for (var i = 0, end = topLabels.length; i < end; i++) {
+                for ( var i = 0, end = topLabels.length; i < end; i++) {
                     tickers[tickers.length] = this._createTicker(config, topLabels[i]);
                 }
                 var parentTicker = function() {
                     if (parentTicker.completed) return;
 
-                    for (var i = tickers.length; i--; ) {
+                    for ( var i = tickers.length; i--; ) {
                         tickers[i].call(this);
                     }
                     if (parentTicker.compChildCount == tickers.length) {
@@ -25,7 +156,7 @@ tm.bulletml = tm.bulletml || {};
                         this.dispatchEvent(tm.event.Event("completeattack"));
                     }
                 };
-                for (var i = tickers; i--; ) {
+                for ( var i = tickers.length; i--; ) {
                     tickers[i].parentTicker = parentTicker;
                 }
 
@@ -47,9 +178,9 @@ tm.bulletml = tm.bulletml || {};
             config = (function(base) {
                 var result = {};
                 var def = tm.bulletml.AttackPattern.DEFAULT_CONFIG;
-                for (var prop in def) {
+                for ( var prop in def) {
                     if (def.hasOwnProperty(prop)) {
-                        if (base !== undefined) {
+                        if (base !== void 0) {
                             result[prop] = base[prop] || def[prop];
                         } else {
                             result[prop] = def[prop];
@@ -98,10 +229,22 @@ tm.bulletml = tm.bulletml || {};
                 this.x += ticker.speedH * conf.speedRate;
                 this.y += ticker.speedV * conf.speedRate;
 
-                if (!conf.testInWorld(this)) {
+                // test out of world
+                if (!conf.isInsideOfWorld(this)) {
                     this.remove();
-                    this.dispatchEvent(tm.event.Event("removed"));
+                    ticker.completed = true;
+                    if (ticker.parentTicker) {
+                        ticker.parentTicker.completeChild();
+                    } else {
+                        this.dispatchEvent(tm.event.Event("completeattack"));
+                    }
                     return;
+                }
+
+                // set direction, speed to bullet
+                if (conf.updateProperties) {
+                    this.rotation = (ticker.direction + Math.PI / 2) * RAD_TO_DEG;
+                    this.speed = ticker.speed;
                 }
 
                 // proccess walker
@@ -140,17 +283,23 @@ tm.bulletml = tm.bulletml || {};
                     }
                 }
 
+                // complete
                 ticker.completed = true;
-                this.dispatchEvent(tm.event.Event("completeattack"));
+                if (ticker.parentTicker) {
+                    ticker.parentTicker.completeChild();
+                } else {
+                    this.dispatchEvent(tm.event.Event("completeattack"));
+                }
             };
 
             action = action || "top";
-            if (typeof(action) === "string") {
+            if (typeof (action) === "string") {
                 ticker.walker = this._bulletml.getWalker(action, config.rank);
             } else if (action instanceof BulletML.Bullet) {
                 ticker.walker = action.getWalker(config.rank);
             } else {
-                throw new Error("argument is invalid.");
+                console.error(config, action);
+                throw new Error("引数が不正");
             }
 
             ticker._pattern = this;
@@ -184,7 +333,7 @@ tm.bulletml = tm.bulletml || {};
                 label: cmd.bullet.label
             });
             if (!b) {
-                return
+                return;
             }
 
             var bt = pattern.createTicker(config, cmd.bullet);
@@ -192,23 +341,26 @@ tm.bulletml = tm.bulletml || {};
             var attacker = this;
             var calcDirection = function(d) {
                 var dv = eval(d.value) * Math.DEG_TO_RAD;
+                // console.debug(d.type);
                 switch(d.type) {
                 case "aim":
                     if (config.target) {
-                        return radiusAtoB(attacker, config.target) + dv;
+                        return angleAtoB(attacker, config.target) + dv;
                     } else {
                         return dv - Math.PI / 2;
                     }
                 case "absolute":
-                    return dv - Math.PI / 2;
+                    return dv - Math.PI / 2; // 真上が0度
                 case "relative":
                     return ticker.direction + dv;
                 case "sequence":
                 default:
+                    // console.debug(ticker.lastDirection, dv);
                     return ticker.lastDirection + dv;
                 }
             };
             ticker.lastDirection = bt.direction = calcDirection(cmd.direction || cmd.bullet.direction);
+            // console.debug(bt.direction);
 
             var calcSpeed = function(s) {
                 var sv = eval(s.value);
@@ -227,6 +379,9 @@ tm.bulletml = tm.bulletml || {};
             b.y = this.y;
 
             b.addEventListener("enterframe", bt);
+            b.addEventListener("removed", function() {
+                this.removeEventListener("enterframe", bt);
+            });
             if (config.addTarget) {
                 config.addTarget.addChild(b);
             } else if (this.parent) {
@@ -242,7 +397,7 @@ tm.bulletml = tm.bulletml || {};
                 if (!tar) {
                     return;
                 }
-                ticker.dirFin = radiusAtoB(this, tar) + d * Math.DEG_TO_RAD;
+                ticker.dirFin = angleAtoB(this, tar) + d * Math.DEG_TO_RAD;
                 ticker.dirIncr = normalizeRadian(ticker.dirFin - ticker.direction) / t;
                 break;
             case "absolute":
@@ -321,25 +476,43 @@ tm.bulletml = tm.bulletml || {};
         }
     });
 
+    /**
+     * bulletFactory未指定時に使用される弾スプライトの生成関数.
+     *
+     * @returns {tm.app.CanvasElement} 8px x 8px の大きさのスプライト
+     * @type function
+     * @memberOf enchant.bulletml
+     */
     tm.bulletml.defaultBulletFactory = function(spec) {
-        var result = tm.app.CircleShape(4, 4);
-        result.label = spec.label;
-        return result;
+        var bullet = tm.app.CircleShape(8, 8);
+        bullet.label = spec.label;
+        return bullet;
     };
 
-    tm.bulletml.defaultTestInWorld = function(bullet) {
+    /**
+     * isInsideOfWorld未指定時に使用される関数.
+     */
+    tm.bulletml.defaultIsInsideOfWorld = function(bullet) {
         return true;
     };
 
+    /**
+     * configのデフォルト値.
+     *
+     * @scope enchant.bulletml.AttackPattern
+     */
     tm.bulletml.AttackPattern.DEFAULT_CONFIG = {
         bulletFactory: tm.bulletml.defaultBulletFactory,
-        testInWorld: tm.bulletml.defaultTestInWorld,
+        isInsideOfWorld: tm.bulletml.defaultIsInsideOfWorld,
         rank: 0,
         updateProperties: false,
         speedRate: 2,
         target: null
     };
 
+    /**
+     * ラジアンを -π<= rad < π の範囲に正規化する.
+     */
     function normalizeRadian(radian) {
         while (radian <= -Math.PI) {
             radian += Math.PI * 2;
@@ -350,15 +523,15 @@ tm.bulletml = tm.bulletml || {};
         return radian;
     }
 
-    function radiusAtoB(a, b) {
-        var ca = {
-            x : a.x,
-            y : a.y
-        };
-        var cb = {
-            x : b.x,
-            y : b.y
-        };
-        return Math.atan2(cb.y - ca.y, cb.x - ca.x);
+    /**
+     * スプライトAから見たスプライトBの方向をラジアンで返す.
+     *
+     * @param {enchant.Node}
+     *            a スプライトA
+     * @param {enchant.Node}
+     *            b スプライトB
+     */
+    function angleAtoB(a, b) {
+        return Math.atan2(b.y-a.y, b.x-a.x);
     }
 })();

@@ -26,7 +26,7 @@ tm.preload(function() {
     //     a1: action(fire(bullet(direction("$1-10")))),
     //     a2: action(fire(bullet(direction("$1+10"))))
     // });
-    syncGet("assets/[Daiouzyou]_round_4_boss_2.xml", 0);
+    syncGet("assets/[Daiouzyou]_hibachi_2.xml", 0);
 
     // attackPatterns[5] = new BulletML.Root({
     //     top : action([

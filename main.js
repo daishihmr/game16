@@ -90,7 +90,7 @@ tm.main(function() {
     var attackParam = {
         rank: 0.5,
         target: player,
-        testInWorld: function(bullet) {
+        isInsideOfWorld: function(bullet) {
             return 0 <= bullet.x && bullet.x <= SCREEN_WIDTH &&
                 0 <= bullet.y && bullet.y <= SCREEN_HEIGHT;
         },
